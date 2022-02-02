@@ -2,7 +2,7 @@
   hosts: localhost
   connection: local
   tasks:
-  - name: Create resource group
+  - name: Create resource group1
     azure_rm_resourcegroup:
       name: myResourceGroup
       location: eastus

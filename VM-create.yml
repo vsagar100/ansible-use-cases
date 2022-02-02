@@ -2,7 +2,7 @@
   - hosts: localhost
     gather_facts: no
     tasks:
-      - name: "Create VM"
+      - name: "Create VM1"
         azure_rm_virtualmachine:
           admin_username: chouseknecht
           image:
