@@ -1,0 +1,101 @@
+---
+- name: Create Azure VM
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  # collections:
+  #    - azure.azcollection
+
+  vars:
+    vault_uri: ""
+    secret_name: ""
+
+  tasks:
+  - name: Include AZ Preview
+    include_role:
+      name: azure.azure_preview_modules
+    vars:
+        skip_azure_sdk: false
+  - name: Include vars of global-vars.yaml into the 'GBL' variable.
+    include_vars:
+      file: global-vars.yml
+      name: GBL
+
+  - name: Get Key Vault by name
+    azure_rm_keyvault_info:
+      resource_group: "{{GBL.RESOURCE_GROUP}}"
+      name: "{{ GBL.VAULT_NAME }}"
+    register: keyvault
+
+  - name: set KeyVault uri fact
+    set_fact: vault_uri="{{ keyvault['keyvaults'][0]['vault_uri'] }}"
+
+  - name: Get Secret Value
+    set_fact: secret_value="{{lookup('azure_keyvault_secret',GBL.SECRET_NAME,vault_url=vault_uri, client_id=GBL.OBJECT_ID, secret=GBL.CLIENT_SECRET, tenant_id=GBL.TENANT_ID)}}"
+  - name: Debug
+    debug:
+      var: secret_value
+
+  - name: Create virtual network
+    azure_rm_virtualnetwork:
+      resource_group: "{{ GBL.RESOURCE_GROUP }}"
+      name: vNet
+      address_prefixes: "10.0.0.0/16"
+
+  - name: Add subnet
+    azure_rm_subnet:
+      resource_group: "{{ GBL.RESOURCE_GROUP }}"
+      name: subnet
+      address_prefix: "10.0.1.0/24"
+      virtual_network: vNet
+
+  - name: Create public IP address
+    azure_rm_publicipaddress:
+      resource_group: "{{ GBL.RESOURCE_GROUP }}"
+      allocation_method: Static
+      name: pip
+    register: output_ip_address
+
+  - name: Output public IP
+    debug:
+      msg: "The public IP is {{ output_ip_address.state.ip_address }}"
+
+  - name: Create Network Security Group
+    azure_rm_securitygroup:
+      resource_group: "{{ GBL.RESOURCE_GROUP }}"
+      name: networkSecurityGroup
+      rules:
+        - name: 'allow_rdp'
+          protocol: Tcp
+          destination_port_range: 3389
+          access: Allow
+          priority: 1001
+          direction: Inbound
+
+  - name: Create a network interface
+    azure_rm_networkinterface:
+      name: nic
+      resource_group: "{{ GBL.RESOURCE_GROUP }}"
+      virtual_network: vNet
+      subnet_name: subnet
+      security_group: networkSecurityGroup
+      ip_configurations:
+        - name: default
+          public_ip_address_name: pip
+          primary: True
+
+  - name: Create VM
+    azure_rm_virtualmachine:
+      resource_group: "{{ GBL.RESOURCE_GROUP }}"
+      name: win-vm
+      vm_size: Standard_DS1_v2
+      admin_username: azureuser
+      admin_password: "{{ secret_value }}"
+      network_interfaces: nic
+      os_type: Windows
+      image:
+          offer: WindowsServer
+          publisher: MicrosoftWindowsServer
+          sku: 2019-Datacenter
+          version: latest
+    no_log: true
