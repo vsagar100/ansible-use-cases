@@ -1,0 +1,47 @@
+- name: Create Azure VM
+  hosts: localhost
+  connection: local
+  gather_facts: no
+  #no_log: True
+  #roles:
+  #  -  { role: azure.azure_preview_modules }
+  vars:
+    vm_name: "testvm"
+  tasks:
+    - name: Include AZ Preview
+      include_role:
+        name: azure.azure_preview_modules
+      vars:
+          skip_azure_sdk: false
+  #  - name: Get secret with Azure CLI
+  #    shell: |
+  #      set -x
+  #      az keyvault secret show --vault-name {{ keyvault_name }} --name {{secretname}}
+
+    #- set_fact:
+    #    ssh_key: "{{ lookup('azure_keyvault_secret','ssh-abc_log_test',vault_url=url,client_id=client_id1,secret=secret_name,tenant_id=tenant, allow_unsafe=True) }}"
+    - name: Include vars of global-vars.yaml into the 'GBL' variable.
+      include_vars:
+        file: global-vars.yml
+        name: GBL
+    - set_fact:
+        ssh_key: "{{ lookup('azure_keyvault_secret',secretname=secretname,vault_url=url,client_id=client_id1,tenant_id=tenant,allow_unsafe=True) }}"
+    - name: Print
+      debug:
+        var: GBL.RESOURCE_GROUP
+    - name: Create VM
+      azure_rm_virtualmachine:
+          resource_group: "{{ GBL.RESOURCE_GROUP }}"
+          name: "{{ vm_name }}"
+          vm_size: Standard_DS1_v2
+          admin_username: azureuser
+          ssh_password_enabled: false
+          ssh_public_keys:
+            - path: /home/azureuser/.ssh/authorized_keys
+              key_data: "{{ ssh_key }}"
+          network_interfaces: "{{ vm_name }}"
+          image:
+            offer: UbuntuServer
+            publisher: Canonical
+            sku: 16.04-LTS
+            version: latest

@@ -1,0 +1,9 @@
+---
+- name: Create Azure key vault
+  hosts: localhost
+  connection: local
+  tasks:
+  - name: Create resource group
+    azure_rm_resourcegroup:
+      name: "{{RESOURCE_GROUP}}"
+      location: "{{RG_LOCATION}}"
