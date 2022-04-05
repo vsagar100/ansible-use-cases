@@ -1,0 +1,7 @@
+RESOURCE_GROUP: Your_RG
+RG_LOCATION: location
+TENANT_ID: Your_tenantID
+OBJECT_ID: ServicePrincipalID
+VAULT_NAME: YourVaultName
+SECRET_NAME: SecretName
+CLIENT_SECRET: SecretPassword

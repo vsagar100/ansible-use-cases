@@ -1,0 +1,8 @@
+RESOURCE_GROUP: YourResourceGroupName
+RG_LOCATION: location
+TENANT_ID: Your_tenantID
+SSH_VM_PUB_KEY_PATH: ssh_pub_key_path
+SECRET_NAME: YourSecretName
+VAULT_NAME: YourVaultName
+OBJECT_ID: yourServicePrincipalID
+CLIENT_SECRET: Secret_Password
